@@ -57,6 +57,7 @@ export default function Home() {
   const [interpDesc, setInterpDesc] = useState('均勻分佈，曲率在中段變化較快');
   const [panelNotice, setPanelNotice] = useState<{ type: string; text: string } | null>(null);
   const [highlightEqIdx, setHighlightEqIdx] = useState(-1);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Canvas states
   const cvRef = useRef<HTMLCanvasElement>(null);
@@ -454,7 +455,7 @@ export default function Home() {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'grid', gridTemplateRows: '52px 1fr', gridTemplateColumns: '360px 1fr 400px' }}>
+    <div style={{ height: '100vh', display: 'grid', gridTemplateRows: '52px 1fr', gridTemplateColumns: '360px 1fr 400px' }} className="app-grid">
       <style>{`
         :root {
           --bg: #F4F4F4; --surface: #FFFFFF; --surface2: #F7F7F7;
@@ -487,17 +488,167 @@ export default function Home() {
         .btn-generate:active { transform: scale(.98); }
         .btn-sm:hover { border-color: var(--border2); color: var(--text); }
         .zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+        /* ── RWD ── */
+        .app-grid {
+          display: grid;
+          grid-template-rows: 52px 1fr;
+          grid-template-columns: 360px 1fr 400px;
+          height: 100vh;
+        }
+        
+        /* 平板：右側方程式縮窄 */
+        @media (max-width: 1100px) {
+          .app-grid {
+            grid-template-columns: 300px 1fr 300px;
+          }
+        }
+        
+        /* 手機：單欄，header + canvas + equations 疊排，左側面板用抽屜 */
+        @media (max-width: 768px) {
+          .app-grid {
+            grid-template-rows: 52px 1fr;
+            grid-template-columns: 1fr;
+            height: 100dvh;
+          }
+          /* header 佔滿第一列 */
+          .app-grid > header {
+            grid-column: 1 / -1;
+          }
+          /* aside 抽屜：預設隱藏，用 .drawer-open 顯示 */
+          .app-grid > aside {
+            position: fixed;
+            top: 52px;
+            left: 0;
+            width: min(360px, 92vw);
+            height: calc(100dvh - 52px);
+            z-index: 100;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+          }
+          .app-grid > aside.drawer-open {
+            transform: translateX(0);
+          }
+          /* canvas 佔滿 */
+          .canvas-wrap {
+            grid-column: 1 / -1;
+            grid-row: 2;
+          }
+          /* 右側方程式：疊在 canvas 下方，需要捲動 */
+          .eq-section {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            height: 50vh;
+            border-left: none !important;
+            border-top: 1px solid var(--border);
+          }
+          /* 手機版 grid 多一列給 eq-section */
+          .app-grid {
+            grid-template-rows: 52px 1fr auto;
+          }
+        }
+        
+        @media (max-width: 768px) {
+        .drawer-toggle { display: flex !important; }
+        .header-title { font-size: 17px !important; }
+        .header-subtitle { display: none; }
+        .header-divider { display: none; }
+        }
+        
+        @media (max-width: 768px) {
+        .drawer-overlay { display: block !important; }
+        .drawer-header { display: flex !important; }
+        }
+        
+        @media (max-width: 768px) {
+        .canvas-wrap {
+          padding: 8px !important;
+          min-height: 45vh;
+        }
+        /* zoom 按鈕位置調整，避免被底部 eq 擋住 */
+        .canvas-wrap > div:last-child {
+          bottom: 12px !important;
+          right: 12px !important;
+        }
+        }
+        @media (max-width: 768px) {
+        .eq-section {
+          min-height: 300px;
+          max-height: 50vh;
+        }
+        /* eq-card 內的 check-row 換行顯示 */
+        .check-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: '4px';
+          line-height: 2;
+        }
+        /* 按鈕字體縮小一點 */
+        .btn-sm {
+          font-size: 12px !important;
+          padding: 5px 7px !important;
+        }
+        }
       `}</style>
 
       {/* Header */}
       <header style={{ gridColumn: '1 / -1', background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '0 24px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: 'var(--shadow-sm)', zIndex: 10 }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>Loft Section Generator</h1>
-        <div style={{ width: '1px', height: '20px', background: 'var(--border2)' }} />
-        <span style={{ fontSize: '22px', color: 'var(--subtle)', fontWeight: 300 }}>截面曲線產生工具</span>
+        {/* 手機版漢堡鈕 */}
+        <button
+            onClick={() => setDrawerOpen(o => !o)}
+            className="drawer-toggle"
+            style={{
+              display: 'none',
+              width: '36px', height: '36px',
+              background: 'var(--surface2)', border: '1px solid var(--border)',
+              borderRadius: '8px', cursor: 'pointer',
+              alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, fontSize: '18px', color: 'var(--muted)',
+            }}
+            aria-label="開啟參數面板"
+        >
+          ☰
+        </button>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }} className="header-title">Loft Section Generator</h1>
+        <div style={{ width: '1px', height: '20px', background: 'var(--border2)' }} className="header-divider" />
+        <span style={{ fontSize: '22px', color: 'var(--subtle)', fontWeight: 300 }} className="header-subtitle">截面曲線產生工具</span>
       </header>
 
       {/* Left Panel */}
-      <aside style={{ gridRow: 2, background: 'var(--surface)', borderRight: '1px solid var(--border)', padding: '16px 14px', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+
+      <>
+        {/* 手機版遮罩 */}
+        {drawerOpen && (
+            <div
+                onClick={() => setDrawerOpen(false)}
+                style={{
+                  display: 'none',
+                  position: 'fixed', inset: 0,
+                  background: 'rgba(0,0,0,0.35)',
+                  zIndex: 99,
+                }}
+                className="drawer-overlay"
+            />
+        )}
+
+        <aside
+            className={`${drawerOpen ? 'drawer-open' : ''}`}
+            style={{ gridRow: 2, background: 'var(--surface)', borderRight: '1px solid var(--border)', padding: '16px 14px', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}
+        >
+          {/* 抽屜內部頂部：關閉按鈕（手機才顯示） */}
+          <div className="drawer-header" style={{ display: 'none', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)' }}>參數設定</span>
+            <button
+                onClick={() => setDrawerOpen(false)}
+                style={{
+                  width: '28px', height: '28px',
+                  background: 'var(--surface2)', border: '1px solid var(--border)',
+                  borderRadius: '6px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '16px', color: 'var(--muted)',
+                }}
+            >✕</button>
+          </div>
         {/* Inner */}
         <div style={{ paddingBottom: '14px', marginBottom: '14px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', color: 'var(--subtle)', marginBottom: '10px' }}>內層：圓角矩形</div>
@@ -638,6 +789,7 @@ export default function Home() {
           }} className="btn-sm all">↓ 全部 .ibl</button>
         </div>
       </aside>
+      </>
 
       {/* Canvas */}
       <div ref={cvWrapRef} style={{ gridRow: 2, background: 'var(--bg)', display: 'flex', padding: '14px', position: 'relative' }} className="canvas-wrap">

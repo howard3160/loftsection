@@ -144,7 +144,7 @@ export default function Home() {
   useEffect(() => {
     const handleResize = () => {
       if (cvWrapRef.current) {
-        const w = cvWrapRef.current.clientWidth;
+        const w = Math.min(cvWrapRef.current.clientWidth, window.innerWidth);
         const h = cvWrapRef.current.clientHeight;
         setCanvasWidth(w);
         setCanvasHeight(h);
@@ -587,6 +587,13 @@ export default function Home() {
         .btn-sm {
           font-size: 12px !important;
           padding: 5px 7px !important;
+        }
+        }
+        
+        @media (max-width: 768px) {
+        .canvas-wrap {
+          overflow: hidden;
+          max-width: 100vw;
         }
         }
       `}</style>
